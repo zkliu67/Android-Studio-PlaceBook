@@ -20,8 +20,20 @@ class BookmarkListAdapter(
             RecyclerView.ViewHolder(v) {
         val nameTextView: TextView = v.findViewById(R.id.bookmarkNameTextView) as TextView
         val categoryImageView: ImageView = v.findViewById(R.id.bookmarkIcon) as ImageView
+
+        // Called when a ViewHolder is initialized, set an onclicklistener to the viewholder.
+        // When the click is fired, it calls the moveToBookmark to change the map.
+        init {
+            v.setOnClickListener {
+                val bookmarkView = itemView.tag as MapsViewModel.BookmarkView
+                mapsActivity.moveToBookmark(bookmarkView)
+            }
+        }
     }
 
+    // Get called when the bookmark data changes
+    // 1. assigns bookmarks to the new BookmarkView list
+    // 2. refresh the recyclerView
     fun setBookmarkData(bookmarks: List<MapsViewModel.BookmarkView>) {
         this.bookmarkData = bookmarks
         notifyDataSetChanged()

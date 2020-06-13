@@ -7,9 +7,12 @@ import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.content.Intent
 import android.graphics.Bitmap
+import android.location.Location
 import android.util.Log
+import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.common.api.ApiException
 
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -25,10 +28,12 @@ import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.raywenderlich.placebook.Adapter.BookmarkInfoWindowAdapter
+import com.raywenderlich.placebook.Adapter.BookmarkListAdapter
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.viewmodel.MapsViewModel
 import kotlinx.android.synthetic.main.activity_bookmark_detail.*
 import kotlinx.android.synthetic.main.activity_maps.*
+import kotlinx.android.synthetic.main.drawer_view_maps.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -39,6 +44,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var placesClient: PlacesClient
     private lateinit var mapsViewModel: MapsViewModel
+    private lateinit var bookmarkListAdapter: BookmarkListAdapter
+
+    // Manage all the markers for bookmark in a HashMap.
+    // Map a bookmark ID to a Marker.
+    private var markers = HashMap<Long, Marker>()
 
     companion object {
 
@@ -67,6 +77,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         setupToolbar()
+        setupNavigationDrawer()
+
         setupLocationClient()
         setupPlacesClient() // Create the client when starting the app.
     }
@@ -99,6 +111,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         )
         // ensures the toggle icon is displayed initially.
         toggle.syncState()
+    }
+
+    // Set up the adapter for the bookmark recycler view.
+    private fun setupNavigationDrawer() {
+        // gets the recyclerView from the layout and sets a default LinearLayoutManager
+        val layoutManager = LinearLayoutManager(this)
+        bookmarkRecyclerView.layoutManager = layoutManager
+        // Creates a new BookmarkListAdapter and assigns it to the RecyclerView.
+        bookmarkListAdapter = BookmarkListAdapter(null, this)
+        bookmarkRecyclerView.adapter = bookmarkListAdapter
     }
 
     private fun setupMapListeners() {
@@ -275,6 +297,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         if (photoMetadata == null) {
             displayPoiDisplayStep(place, null)
+            return
         }
 
         val photoRequest = FetchPhotoRequest
@@ -320,13 +343,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // observes the changes to BookmarkMarkerView
     // And updates the view when they change.
+    // Also updates the recycler view adapter.
     private fun createBookmarkObserver() {
         mapsViewModel.getBookmarkViews()?.observe(
             this, androidx.lifecycle
                 .Observer {
                     mMap.clear()
+                    markers.clear() // clears the marker when the bookmark changes
                     it?.let {
                         displayAllBookmarks(it)
+                        bookmarkListAdapter.setBookmarkData(it)
                     }
                 }
         )
@@ -351,7 +377,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 BitmapDescriptorFactory.HUE_AZURE))
             .alpha(0.8f))
         marker.tag = bookmark
+        bookmark.id?.let {
+            markers.put(it, marker)
+        }
         return marker
+    }
+
+    fun moveToBookmark(bookmark: MapsViewModel.BookmarkView) {
+        drawerLayout.closeDrawer(drawerView)
+        val marker = markers[bookmark.id]
+        marker?.showInfoWindow()
+        val location = Location("")
+        location.latitude = bookmark.location.latitude
+        location.longitude = bookmark.location.longitude
+        updateMapToLocation(location)
+    }
+
+    private fun updateMapToLocation(location: Location) {
+        val latLng = LatLng(location.latitude, location.longitude)
+        // Pans and zooms the map to the center of the location
+        mMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(latLng, 16.0f))
     }
 
 }

@@ -11,7 +11,7 @@ import com.raywenderlich.placebook.model.Bookmark
 // Must be interface or abstract classes.
 
 interface BookmarkDao {
-    @Query("SELECT * FROM Bookmark")
+    @Query("SELECT * FROM Bookmark ORDER BY name")
     fun loadAll(): LiveData<List<Bookmark>>
 
     @Query("SELECT * FROM Bookmark WHERE id = :bookmarkId")
