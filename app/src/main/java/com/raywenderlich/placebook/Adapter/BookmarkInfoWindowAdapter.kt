@@ -1,8 +1,6 @@
 package com.raywenderlich.placebook.Adapter
 
 import android.app.Activity
-import android.graphics.Bitmap
-import android.view.TextureView
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -42,9 +40,9 @@ class BookmarkInfoWindowAdapter(val context: Activity):
 
             // If marker.tag is a MapsViewModel.BookmarkMarkerView, you set the imageView
             // bitmap from the BookmarkMarkerView.
-            is MapsViewModel.BookmarkMarkerView -> {
+            is MapsViewModel.BookmarkView -> {
                 var bookMarkView = marker.tag as
-                        MapsViewModel.BookmarkMarkerView
+                        MapsViewModel.BookmarkView
                 // Set imageView bitmap here...
                 imageView.setImageBitmap(bookMarkView.getImage(context))
             }

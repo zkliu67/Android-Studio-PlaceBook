@@ -8,7 +8,7 @@ import android.Manifest
 import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.lifecycle.ViewModelProviders
 import com.google.android.gms.common.api.ApiException
 
@@ -27,6 +27,8 @@ import com.google.android.libraries.places.api.net.PlacesClient
 import com.raywenderlich.placebook.Adapter.BookmarkInfoWindowAdapter
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.viewmodel.MapsViewModel
+import kotlinx.android.synthetic.main.activity_bookmark_detail.*
+import kotlinx.android.synthetic.main.activity_maps.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -64,6 +66,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Initialize the map using getMapAsync()
         mapFragment.getMapAsync(this)
 
+        setupToolbar()
         setupLocationClient()
         setupPlacesClient() // Create the client when starting the app.
     }
@@ -83,6 +86,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         setupViewModel() // Initiate view model
         getCurrentLocation() // To get current location
 
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(toolbar)
+
+        // takes drawerlayout and toogle and fully manage the
+        // display and functionality of the toggle icon.
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar,
+            R.string.open_drawer ,R.string.close_drawer
+        )
+        // ensures the toggle icon is displayed initially.
+        toggle.syncState()
     }
 
     private fun setupMapListeners() {
@@ -107,7 +123,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setupViewModel() {
         mapsViewModel =
             ViewModelProviders.of(this).get(MapsViewModel::class.java)
-        createBookmarkMarkerObserver()
+        createBookmarkObserver()
     }
 
     private fun setupPlacesClient() {
@@ -149,8 +165,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             // If the place is liked (blue marker)
             // Click the marker to view/add detail
-            is MapsViewModel.BookmarkMarkerView -> {
-                val bookmarkMarkerView = marker.tag as MapsViewModel.BookmarkMarkerView
+            is MapsViewModel.BookmarkView -> {
+                val bookmarkMarkerView = marker.tag as MapsViewModel.BookmarkView
                 marker.hideInfoWindow()
                 bookmarkMarkerView.id?.let {
                     startBookmarkDetails(it)
@@ -304,8 +320,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // observes the changes to BookmarkMarkerView
     // And updates the view when they change.
-    private fun createBookmarkMarkerObserver() {
-        mapsViewModel.getBookmarkMarkerViews()?.observe(
+    private fun createBookmarkObserver() {
+        mapsViewModel.getBookmarkViews()?.observe(
             this, androidx.lifecycle
                 .Observer {
                     mMap.clear()
@@ -318,7 +334,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // Walk through all the book marks and add marker to each of them.
     private fun displayAllBookmarks(
-        bookmarks: List<MapsViewModel.BookmarkMarkerView>) {
+        bookmarks: List<MapsViewModel.BookmarkView>) {
         for (bookmark in bookmarks) {
             addPlaceMarker(bookmark)
         }
@@ -326,7 +342,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // Add place marker for a single location
     private fun addPlaceMarker(
-        bookmark: MapsViewModel.BookmarkMarkerView): Marker? {
+        bookmark: MapsViewModel.BookmarkView): Marker? {
         val marker = mMap.addMarker(MarkerOptions()
             .position(bookmark.location)
             .title(bookmark.name)
