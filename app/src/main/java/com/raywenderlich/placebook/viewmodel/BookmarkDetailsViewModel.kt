@@ -9,6 +9,8 @@ import androidx.lifecycle.Transformations
 import com.raywenderlich.placebook.model.Bookmark
 import com.raywenderlich.placebook.repository.BookmarkRepo
 import com.raywenderlich.placebook.util.ImageUtils
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 // Use the bookmark repo to retrieve the bookmark detail
 // and format it to the detail activity
@@ -47,6 +49,18 @@ class BookmarkDetailsViewModel(application: Application):
         return bookmarkDetailsView
     }
 
+    fun updateBookmark(bookmarkView: BookmarkDetailsView) {
+        // Connecting the database in the background
+        GlobalScope.launch {
+            // convert the bookmarkview to bookmark
+            val bookmark = bookmarkViewToBookmark(bookmarkView)
+            bookmark?.let {
+                // update the bookmark
+                bookmarkRepo.updateBookmark(it)
+            }
+        }
+    }
+
     // 3. Converts a live database bookmark object to a Live bookmark view object
     private fun mapBookmarkToBookmarkView(bookmarkId: Long) {
         val bookmark = bookmarkRepo.getLiveBookmark(bookmarkId)
@@ -65,6 +79,23 @@ class BookmarkDetailsViewModel(application: Application):
             bookmark.address,
             bookmark.notes
         )
+    }
+
+    private fun bookmarkViewToBookmark(bookmarkView: BookmarkDetailsView)
+            :Bookmark? {
+        val bookmark = bookmarkView.id?.let {
+            bookmarkRepo.getBookmark(it)
+        }
+
+        if (bookmark != null) {
+            bookmark.id = bookmarkView.id
+            bookmark.name = bookmarkView.name
+            bookmark.phone = bookmarkView.phone
+            bookmark.address = bookmarkView.address
+            bookmark.notes = bookmarkView.notes
+        }
+
+        return bookmark
     }
 
 }

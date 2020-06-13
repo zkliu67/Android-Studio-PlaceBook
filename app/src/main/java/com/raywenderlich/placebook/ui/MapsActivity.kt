@@ -163,8 +163,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // Called when the user taps on an info window.
     private fun startBookmarkDetails(bookmarkId: Long) {
         // Adds the bookmark ID as an extra parameter on the Intent
-        intent.putExtra(EXTRA_BOOKMARK_ID, bookmarkId)
         val intent = Intent(this, BookmarkDetailsActivity::class.java)
+        intent.putExtra(EXTRA_BOOKMARK_ID, bookmarkId)
         startActivity(intent)
     }
 

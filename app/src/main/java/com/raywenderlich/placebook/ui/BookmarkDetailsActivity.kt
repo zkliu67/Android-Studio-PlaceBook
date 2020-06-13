@@ -1,6 +1,8 @@
 package com.raywenderlich.placebook.ui
 
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
@@ -22,18 +24,45 @@ class BookmarkDetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmark_detail)
         setupToolbar()
+        setupViewModel()
+        getIntentData()
+    }
+
+    // Provide the item to the tool bar, by loading the menu layout.
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater = menuInflater
+        inflater.inflate(R.menu.menu_bookmark_details, menu)
+        return true
+    }
+
+    // method called when the user selects a toolbar checkmark item
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_save -> {
+                saveChanges()
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
     }
 
     private fun setupToolbar() {
         setSupportActionBar(toolbar)
     }
 
+    // Get called when the activity is created
     private fun getIntentData() {
+        val activity = MapsActivity.EXTRA_BOOKMARK_ID
+        // Pull the bookmark id from the intent
         val bookmarkId = intent.getLongExtra(
-            MapsActivity.Companion.EXTRA_BOOKMARK_ID, 0
+            MapsActivity.EXTRA_BOOKMARK_ID, 0
         )
+
+        // Retrieve the BookmarkDetailsView from the ModelView and observe for it changes
         bookmarkDetailsViewModel.getBookmark(bookmarkId)?.observe(
             this, Observer {
+                // Whenever the bookmark is loaded or changed
+                // Assign it to current bookmark
                 it?.let {
                    bookmarkDetailsView  = it
                     populateFields()
@@ -68,5 +97,20 @@ class BookmarkDetailsActivity : AppCompatActivity() {
         }
     }
 
+    private fun saveChanges() {
+        val name = editTextName.text.toString()
+        if (name.isEmpty()) {
+            return
+        }
+
+        bookmarkDetailsView?.let { bookmarkView ->
+            bookmarkView.name = editTextName.text.toString()
+            bookmarkView.notes = editTextNote.text.toString()
+            bookmarkView.address = editTextAddress.text.toString()
+            bookmarkView.phone = editTextPhone.text.toString()
+            bookmarkDetailsViewModel.updateBookmark(bookmarkView)
+        }
+        finish() // Close the activity
+    }
 
 }

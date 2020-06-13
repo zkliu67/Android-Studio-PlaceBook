@@ -8,6 +8,11 @@ import com.raywenderlich.placebook.model.Bookmark
 
 // Context object is required to get an instance of the BookmarkDatabase class
 class BookmarkRepo(context: Context) {
+
+    val allBookmarks: LiveData<List<Bookmark>>
+        get() {
+            return bookmarkDao.loadAll()
+        }
     // get the PlaceBookDatabase singleton instance
     private var db = PlaceBookDatabase.getInstance(context)
     // get DAO object from PlaceBookDatabase.
@@ -27,8 +32,12 @@ class BookmarkRepo(context: Context) {
         return bookmarkDao.loadLiveBookmark(bookmarkId)
     }
 
-    val allBookmarks: LiveData<List<Bookmark>>
-        get() {
-            return bookmarkDao.loadAll()
-        }
+    fun getBookmark(bookmarkId: Long): Bookmark {
+        return bookmarkDao.loadBookmark(bookmarkId)
+    }
+
+    fun updateBookmark(bookmark: Bookmark) {
+        bookmarkDao.updateBookmark(bookmark)
+    }
+
 }
