@@ -1,12 +1,15 @@
 package com.raywenderlich.placebook.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
+import android.net.Uri
+import android.os.Environment
+import java.io.*
 import java.lang.Exception
+import java.text.SimpleDateFormat
+import java.util.*
 
 // ImageUtils is declared as an object, it behaves as a singleton.
 object ImageUtils {
@@ -33,6 +36,58 @@ object ImageUtils {
         saveBytesToFile(context, bytes, filename)
     }
 
+    // Returns an empty file in the app's private folder using a unique filename
+    // Potentially throw IOException when createTempFile.
+    @Throws(IOException::class)
+    fun createUniqueImageFile(context: Context): File {
+        val timeStamp = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
+        val filename = "PlaceBook_" + timeStamp + "_"
+        val filesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(filename, ".jpg", filesDir)
+    }
+
+    fun decodeFileToSize(filePath: String, width: Int, height: Int): Bitmap {
+        // Load the size of image using BitmapFactory.decodeFile()
+        val options = BitmapFactory.Options()
+        options.inJustDecodeBounds = true // just load the size not the actual file
+        BitmapFactory.decodeFile(filePath, options)
+
+        options.inSampleSize = calculateInSampleSize(
+            options.outWidth, options.outHeight, width, height)
+
+        options.inJustDecodeBounds = false // load the full image
+        return BitmapFactory.decodeFile(filePath, options) // return the downsampled file
+    }
+
+    fun decodeUriStreamToSize(
+        uri: Uri, width: Int, height: Int, context: Context): Bitmap? {
+        var inputStream: InputStream? = null
+        try {
+            val options: BitmapFactory.Options
+            inputStream = context.contentResolver.openInputStream(uri)
+            if (inputStream != null) {
+                options = BitmapFactory.Options()
+                options.inJustDecodeBounds = false
+                BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream.close()
+                inputStream = context.contentResolver.openInputStream(uri)
+                if (inputStream != null) {
+                    options.inSampleSize = calculateInSampleSize(
+                        options.outWidth, options.outHeight, width, height)
+                    options.inJustDecodeBounds = false
+                    val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
+                    inputStream.close()
+                    return bitmap
+                }
+            }
+            return null
+        } catch (e: Exception) {
+            return null
+        } finally {
+            inputStream?.close()
+        }
+    }
+
     // write the bytes to a file.
     private fun saveBytesToFile(context: Context, byte: ByteArray, filename: String){
         val outputStream: FileOutputStream
@@ -43,5 +98,24 @@ object ImageUtils {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    // Downsample the captured image to match the default bookmark photo size
+    // Calculate the optimum inSampleSize that can be used to resize an image to
+    // a specific width and height.
+    private fun calculateInSampleSize(
+        width: Int, height: Int, reqWidth: Int, reqHeight: Int): Int {
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+            while (halfHeight / inSampleSize >= reqHeight &&
+                    halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize
     }
 }
