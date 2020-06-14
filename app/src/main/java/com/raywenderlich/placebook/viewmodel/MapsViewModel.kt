@@ -20,7 +20,8 @@ class MapsViewModel(application: Application):
         var id: Long? = null,
         var location: LatLng = LatLng(0.0, 0.0),
         var name: String = "",
-        var phone: String = ""
+        var phone: String = "",
+        var categoryResourceId: Int? = null
     ) {
         fun getImage(context: Context): Bitmap? {
             id?.let {
@@ -54,6 +55,7 @@ class MapsViewModel(application: Application):
         bookmark.latitude = place.latLng?.latitude?: 0.0
         bookmark.phone = place.phoneNumber.toString()
         bookmark.address = place.address.toString()
+        bookmark.category = getPlaceCategory(place)
 
         val newId = bookmarkRepo.addBookmark(bookmark)
 
@@ -78,8 +80,20 @@ class MapsViewModel(application: Application):
             bookmark.id,
             LatLng(bookmark.latitude, bookmark.longitude),
             bookmark.name,
-            bookmark.phone
+            bookmark.phone,
+            bookmarkRepo.getCategoryResourceId(bookmark.category)
         )
+    }
+
+    private fun getPlaceCategory(place: Place): String{
+        var category = "Other"
+        val placeTypes = place.types
+        placeTypes?.let {
+            if (it.size > 0) {
+                category = bookmarkRepo.placeTypeToCategory(it[0])
+            }
+        }
+        return category
     }
 
 }

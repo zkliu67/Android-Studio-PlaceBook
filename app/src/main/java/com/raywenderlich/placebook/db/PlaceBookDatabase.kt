@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.raywenderlich.placebook.model.Bookmark
 
-@Database(entities = [Bookmark::class], version = 2)
+@Database(entities = [Bookmark::class], version = 3)
 // Identify a database class to Room
 // entities is a required attribute defining an array of all entities.
 

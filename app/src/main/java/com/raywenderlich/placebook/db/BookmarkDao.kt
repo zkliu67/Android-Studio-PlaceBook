@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.room.*
 import androidx.room.OnConflictStrategy.IGNORE
 import androidx.room.OnConflictStrategy.REPLACE
+import com.google.android.libraries.places.api.model.Place
 import com.raywenderlich.placebook.model.Bookmark
 
 @Dao

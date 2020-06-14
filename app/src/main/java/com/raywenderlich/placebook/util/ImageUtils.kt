@@ -64,14 +64,19 @@ object ImageUtils {
         var inputStream: InputStream? = null
         try {
             val options: BitmapFactory.Options
+            // Input stream is opened for the uri
             inputStream = context.contentResolver.openInputStream(uri)
             if (inputStream != null) {
+                // read the image size from stream uri
                 options = BitmapFactory.Options()
                 options.inJustDecodeBounds = false
                 BitmapFactory.decodeStream(inputStream, null, options)
+                // the stream is closed and reopen again for null check
                 inputStream.close()
                 inputStream = context.contentResolver.openInputStream(uri)
                 if (inputStream != null) {
+                    // the image is then loaded from the stream using the downsampling
+                    // options and returned to the caller
                     options.inSampleSize = calculateInSampleSize(
                         options.outWidth, options.outHeight, width, height)
                     options.inJustDecodeBounds = false

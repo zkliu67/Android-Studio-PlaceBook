@@ -52,9 +52,9 @@ class BookmarkListAdapter(
 
         holder.itemView.tag = bookmarkViewData
         holder.nameTextView.text = bookmarkViewData.name
-        holder.categoryImageView.setImageResource(
-            R.drawable.ic_launcher_foreground
-        )
+        bookmarkViewData.categoryResourceId?.let {
+            holder.categoryImageView.setImageResource(it)
+        }
     }
 
     override fun getItemCount(): Int {

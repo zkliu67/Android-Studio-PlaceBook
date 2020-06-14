@@ -13,6 +13,8 @@ import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException
+import com.google.android.gms.common.GooglePlayServicesRepairableException
 import com.google.android.gms.common.api.ApiException
 
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -24,9 +26,12 @@ import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.raywenderlich.placebook.Adapter.BookmarkInfoWindowAdapter
 import com.raywenderlich.placebook.Adapter.BookmarkListAdapter
 import com.raywenderlich.placebook.R
@@ -46,25 +51,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var mapsViewModel: MapsViewModel
     private lateinit var bookmarkListAdapter: BookmarkListAdapter
 
+    private val MSG = "MapsActivityMsg"
+
     // Manage all the markers for bookmark in a HashMap.
     // Map a bookmark ID to a Marker.
     private var markers = HashMap<Long, Marker>()
-
-    companion object {
-
-        // Defines a key to store the bookmark id in the intent extras.
-        const val EXTRA_BOOKMARK_ID =
-            "com.raywenderlich.placebook.EXTRA_BOOKMARK_ID"
-        // request code passed to requestPermission()
-        // Used to identify the specific permission request when the request is returned by android.
-        private const val REQUEST_LOCATION = 1
-
-        // TAG is passed to Log.e method,
-        // used to print information to the Logcat window for debugging.
-        private const val TAG = "MapsActivity"
-    }
-
-    class PlaceInfo (val place: Place? = null, val image: Bitmap? = null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -373,8 +364,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .position(bookmark.location)
             .title(bookmark.name)
             .snippet(bookmark.phone)
-            .icon(BitmapDescriptorFactory.defaultMarker(
-                BitmapDescriptorFactory.HUE_AZURE))
+                // Setting an icon corresponding to the category
+            .icon(bookmark.categoryResourceId?.let {
+                BitmapDescriptorFactory.fromResource(it)
+            })
             .alpha(0.8f))
         marker.tag = bookmark
         bookmark.id?.let {
@@ -400,4 +393,47 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             CameraUpdateFactory.newLatLngZoom(latLng, 16.0f))
     }
 
+    // Use autocomplete for search functionality
+    private fun searchAtCurrentLocation() {
+        val placeFields = listOf(
+            Place.Field.ID,
+            Place.Field.NAME,
+            Place.Field.PHONE_NUMBER,
+            Place.Field.PHOTO_METADATAS,
+            Place.Field.LAT_LNG,
+            Place.Field.ADDRESS,
+            Place.Field.TYPES
+        )
+
+        val bounds = RectangularBounds.newInstance(
+            mMap.projection.visibleRegion.latLngBounds)
+        try {
+            val intent = Autocomplete.IntentBuilder(
+                AutocompleteActivityMode.OVERLAY, placeFields)
+                .setLocationBias(bounds)
+                .build(this)
+            startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE)
+        } catch (e: GooglePlayServicesNotAvailableException) {
+            // TODO: Handle exception
+        } catch (e: GooglePlayServicesRepairableException) {
+            // TODO: Handle exception
+        }
+    }
+
+    companion object {
+
+        // Defines a key to store the bookmark id in the intent extras.
+        const val EXTRA_BOOKMARK_ID =
+            "com.raywenderlich.placebook.EXTRA_BOOKMARK_ID"
+        // request code passed to requestPermission()
+        // Used to identify the specific permission request when the request is returned by android.
+        private const val REQUEST_LOCATION = 1
+        private const val AUTOCOMPLETE_REQUEST_CODE = 2
+
+        // TAG is passed to Log.e method,
+        // used to print information to the Logcat window for debugging.
+        private const val TAG = "MapsActivity"
+    }
+
+    class PlaceInfo (val place: Place? = null, val image: Bitmap? = null)
 }

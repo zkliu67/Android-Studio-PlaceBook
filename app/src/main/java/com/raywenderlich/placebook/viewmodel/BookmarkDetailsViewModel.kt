@@ -27,7 +27,8 @@ class BookmarkDetailsViewModel(application: Application):
         var name: String = "",
         var phone: String = "",
         var address: String = "",
-        var notes: String = ""
+        var notes: String = "",
+        var category: String = ""
     ) {
         fun getImage(context: Context): Bitmap? {
             id?.let {
@@ -42,6 +43,10 @@ class BookmarkDetailsViewModel(application: Application):
                 ImageUtils.saveBitmapToFile(context, image, Bookmark.generateImageFilename(it))
             }
         }
+    }
+
+    fun getCategories(): List<String> {
+        return bookmarkRepo.categories
     }
 
     // 4. Put all together
@@ -67,6 +72,10 @@ class BookmarkDetailsViewModel(application: Application):
         }
     }
 
+    fun getCategoryResourceId(category: String): Int? {
+        return bookmarkRepo.getCategoryResourceId(category)
+    }
+
     // 3. Converts a live database bookmark object to a Live bookmark view object
     private fun mapBookmarkToBookmarkView(bookmarkId: Long) {
         val bookmark = bookmarkRepo.getLiveBookmark(bookmarkId)
@@ -83,7 +92,8 @@ class BookmarkDetailsViewModel(application: Application):
             bookmark.name,
             bookmark.phone,
             bookmark.address,
-            bookmark.notes
+            bookmark.notes,
+            bookmark.category
         )
     }
 
@@ -99,6 +109,7 @@ class BookmarkDetailsViewModel(application: Application):
             bookmark.phone = bookmarkView.phone
             bookmark.address = bookmarkView.address
             bookmark.notes = bookmarkView.notes
+            bookmark.category = bookmarkView.category
         }
 
         return bookmark

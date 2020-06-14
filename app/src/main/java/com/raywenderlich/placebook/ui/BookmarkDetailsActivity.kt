@@ -9,6 +9,10 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.Adapter
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -113,7 +117,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
         }
 
     }
-
+    // Display image selection activity
     override fun onPickClick() {
         val pickIntent = Intent(Intent.ACTION_PICK,
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI
@@ -142,6 +146,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
                    bookmarkDetailsView  = it
                     populateFields()
                     populateImageView()
+                    populateCategoryList()
                 }
             }
         )
@@ -185,6 +190,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
             bookmarkView.address = editTextAddress.text.toString()
             bookmarkView.phone = editTextPhone.text.toString()
             bookmarkDetailsViewModel.updateBookmark(bookmarkView)
+            bookmarkView.category = spinnerCategory.selectedItem as String
         }
         finish() // Close the activity
     }
@@ -212,6 +218,53 @@ class BookmarkDetailsActivity : AppCompatActivity(),
         return ImageUtils.decodeUriStreamToSize(uri,
             resources.getDimensionPixelSize(R.dimen.default_image_width),
             resources.getDimensionPixelSize(R.dimen.default_image_height),this)
+    }
+
+    private fun populateCategoryList() {
+        val bookmarkView = bookmarkDetailsView ?: return
+        // retrieve the category icon from view model.
+        val resourceId =
+            bookmarkDetailsViewModel.getCategoryResourceId(bookmarkView.category)
+        // If icon exists, display icon in the imageView
+        resourceId?.let { imageViewCategory.setImageResource(it) }
+        // return a list of all categories
+        val categories = bookmarkDetailsViewModel.getCategories()
+        // a standard way to populate a spinner control.
+        // 1. create an adapter, which is ArrayAdapter in this case
+        val adapter = ArrayAdapter(this,
+            android.R.layout.simple_spinner_item, categories)
+        // 2. assign the adapter to a built-in layout resource
+        adapter.setDropDownViewResource(
+            android.R.layout.simple_spinner_dropdown_item)
+        // assign the adapter to the category control
+        spinnerCategory.adapter = adapter
+        val placeCategory = bookmarkView.category
+        // update the selection to reflect the current category control
+        spinnerCategory.setSelection(adapter.getPosition(placeCategory))
+
+        // after selecting the new category
+        // 1. update the icon display; 2. save the current category
+        // Setup a listener to respond when the user changes the category selection
+        spinnerCategory.post {
+            // assign the spinnerCategory.onItemSelectedListener to an instance
+            // of the onItemSelectedListener class that implements onItemSelected and onNothing.
+            spinnerCategory.onItemSelectedListener = object :
+                AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View,
+                                            position: Int, id: Long) {
+                    // determine the new category by the current spinner selection position
+                    val category = parent.getItemAtPosition(position) as String
+                    val resourceId =
+                        bookmarkDetailsViewModel.getCategoryResourceId(category)
+                    // update the image view
+                    resourceId?.let {
+                        imageViewCategory.setImageResource(it) }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>) {
+                    // NOTE: This method is required but not used.
+                }
+            }
+        }
     }
 
     companion object {
