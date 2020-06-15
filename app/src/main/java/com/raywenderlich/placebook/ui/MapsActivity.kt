@@ -5,11 +5,14 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.core.app.ActivityCompat
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.location.Location
 import android.util.Log
+import android.view.WindowManager
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,8 +40,10 @@ import com.raywenderlich.placebook.Adapter.BookmarkListAdapter
 import com.raywenderlich.placebook.R
 import com.raywenderlich.placebook.viewmodel.MapsViewModel
 import kotlinx.android.synthetic.main.activity_bookmark_detail.*
+import kotlinx.android.synthetic.main.activity_bookmark_detail.toolbar
 import kotlinx.android.synthetic.main.activity_maps.*
 import kotlinx.android.synthetic.main.drawer_view_maps.*
+import kotlinx.android.synthetic.main.main_view_maps.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -91,6 +96,25 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        when (requestCode) {
+            AUTOCOMPLETE_REQUEST_CODE ->
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    val place = Autocomplete.getPlaceFromIntent(data)
+                    val location = Location("")
+
+                    location.latitude = place.latLng?.latitude?: 0.0
+                    location.longitude = place.latLng?. longitude?: 0.0
+
+                    updateMapToLocation(location)
+                    showProgress() // show progress bar after searching for a place before the place is loaded.
+                    displayPoiGetPhotoStep(place)
+                }
+        }
+    }
+
     private fun setupToolbar() {
         setSupportActionBar(toolbar)
 
@@ -131,6 +155,24 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.setOnInfoWindowClickListener {
             handleInfoWindowClick(it)
         }
+
+        fab.setOnClickListener {
+            searchAtCurrentLocation()
+        }
+        // manually add a new location by long press the map location.
+        mMap.setOnMapLongClickListener { latLng ->
+            newBookmark(latLng)
+        }
+    }
+
+    private fun showProgress() {
+        progressBar.visibility = ProgressBar.VISIBLE
+        disableUserInteraction()
+    }
+
+    private fun hideProgress() {
+        progressBar.visibility = ProgressBar.GONE
+        enableUserInteraction()
     }
 
     private fun setupViewModel() {
@@ -238,6 +280,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun displayPoi(pointOfInterest: PointOfInterest) {
+        showProgress() // progress visible and disables user interaction
         displayPoiGetPlaceStep(pointOfInterest)
     }
 
@@ -278,11 +321,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 exception.message + ", " +
                                 "statusCode: " + statusCode
                     )
+                    hideProgress()
                 }
             }
     }
 
     private fun displayPoiGetPhotoStep(place: Place) {
+        hideProgress()
         // Get the photoMetadata for the selected place.
         val photoMetadata = place.photoMetadatas?.get(0)
 
@@ -395,6 +440,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // Use autocomplete for search functionality
     private fun searchAtCurrentLocation() {
+        // defines the fields informing the Autocomplete widget what attributes to return.
         val placeFields = listOf(
             Place.Field.ID,
             Place.Field.NAME,
@@ -404,20 +450,43 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             Place.Field.ADDRESS,
             Place.Field.TYPES
         )
-
+        // Compute the bounds of the current visible region of the map.
         val bounds = RectangularBounds.newInstance(
             mMap.projection.visibleRegion.latLngBounds)
         try {
+            /*
+            Autocomplete.IntentBuilder provides an intent.
+            - AutocompleteActivityMode.OVERLAY to display search widget as overlay
+            - AutocompleteActivityMode.FULLSCREEN cause the search interface
+            to replace the entire screen.
+             */
             val intent = Autocomplete.IntentBuilder(
                 AutocompleteActivityMode.OVERLAY, placeFields)
-                .setLocationBias(bounds)
+                .setLocationBias(bounds) // apply the bounds.
                 .build(this)
+            // start the activity with a request_code.
             startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE)
         } catch (e: GooglePlayServicesNotAvailableException) {
             // TODO: Handle exception
         } catch (e: GooglePlayServicesRepairableException) {
             // TODO: Handle exception
         }
+    }
+
+    private fun newBookmark(latLng: LatLng) {
+        GlobalScope.launch {
+            val bookmarkId = mapsViewModel.addBookmark(latLng)
+            bookmarkId?.let { startBookmarkDetails(it) }
+        }
+    }
+
+    private fun disableUserInteraction() {
+        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    private fun enableUserInteraction() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
     }
 
     companion object {

@@ -39,6 +39,16 @@ class MapsViewModel(application: Application):
     )
     private var bookmarks: LiveData<List<BookmarkView>>? = null
 
+    // mannually add a bookmark from location and returns the bookmark id
+    fun addBookmark(latLng: LatLng): Long?{
+        val bookmark = bookmarkRepo.createBookmark()
+        bookmark.name = "Untitled"
+        bookmark.latitude = latLng.latitude
+        bookmark.longitude = latLng.longitude
+        bookmark.category = "Other"
+        return bookmarkRepo.addBookmark(bookmark)
+    }
+
     fun getBookmarkViews():
             LiveData<List<BookmarkView>>? {
         if (bookmarks == null) {

@@ -14,6 +14,7 @@ import android.widget.Adapter
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
@@ -25,6 +26,7 @@ import kotlinx.android.synthetic.main.activity_bookmark_detail.*
 import kotlinx.android.synthetic.main.content_bookmark_info.*
 import java.io.File
 import java.io.FilePermission
+import java.net.URLEncoder
 
 
 class BookmarkDetailsActivity : AppCompatActivity(),
@@ -42,6 +44,7 @@ class BookmarkDetailsActivity : AppCompatActivity(),
         setupToolbar()
         setupViewModel()
         getIntentData()
+        setupFab()
     }
 
     // Provide the item to the tool bar, by loading the menu layout.
@@ -56,6 +59,10 @@ class BookmarkDetailsActivity : AppCompatActivity(),
         when (item.itemId) {
             R.id.action_save -> {
                 saveChanges()
+                return true
+            }
+            R.id.action_delete -> {
+                deleteBookmark()
                 return true
             }
             else -> return super.onOptionsItemSelected(item)
@@ -158,6 +165,11 @@ class BookmarkDetailsActivity : AppCompatActivity(),
             BookmarkDetailsViewModel::class.java
         )
     }
+
+    private fun setupFab() {
+        fabShare.setOnClickListener { sharePlace() }
+    }
+
     // Populates all the UI fields using the current bookmarkView if not null.
     private fun populateFields() {
         bookmarkDetailsView?.let { bookmarkView ->
@@ -265,6 +277,51 @@ class BookmarkDetailsActivity : AppCompatActivity(),
                 }
             }
         }
+    }
+
+    private fun deleteBookmark() {
+        val bookmarkView = bookmarkDetailsView ?: return
+        AlertDialog.Builder(this)
+            .setMessage("Delete?")
+            .setPositiveButton("OK") {_,_ ->
+                bookmarkDetailsViewModel.deleteBookmark(bookmarkView)
+                finish()
+            }
+            .setNegativeButton("Cancel", null)
+            .create().show()
+    }
+
+    private fun sharePlace() {
+        val bookmarkView = bookmarkDetailsView ?: return
+        // Builds out the googlemap url to trigger driving directions
+        // to the bookmarked place.
+        var mapUrl = ""
+        if (bookmarkView.placeId == null) {
+            // if the location is created by the user
+            val location = URLEncoder.encode("${bookmarkView.latitude},"
+                    + "${bookmarkView.longitude}", "utf-8")
+            mapUrl = "https://www.google.com/maps/dir/?api=1" +
+                    "&destination=$location"
+        } else {
+            // if the location is created by the place
+            val name = URLEncoder.encode(bookmarkView.name, "utf-8")
+            mapUrl = "https://www.google.com/maps/dir/?api=1" +
+                    "&destination=$name&destination_place_id=" +
+                    "${bookmarkView.placeId}"
+        }
+        // Create the sharing Activity Intent, and set the action to ACTION_SEND.
+        // This tells android to share this data with other application installed on the device.
+        val sendIntent = Intent()
+        sendIntent.action = Intent.ACTION_SEND
+        // The app that recieves the Intent may choose the operation
+        // to use or to ignore.
+        sendIntent.putExtra(Intent.EXTRA_TEXT,
+            "Check out ${bookmarkView.name} at:\n$mapUrl")
+        sendIntent.putExtra(Intent.EXTRA_SUBJECT,
+            "Sharing ${bookmarkView.name}")
+        // MIME type: "text/plain", to share a plain text data.
+        sendIntent.type = "text/plain"
+        startActivity(sendIntent)
     }
 
     companion object {

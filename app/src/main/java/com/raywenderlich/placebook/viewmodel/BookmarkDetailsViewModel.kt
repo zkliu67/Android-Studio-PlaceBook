@@ -28,7 +28,10 @@ class BookmarkDetailsViewModel(application: Application):
         var phone: String = "",
         var address: String = "",
         var notes: String = "",
-        var category: String = ""
+        var category: String = "",
+        var latitude: Double = 0.0,
+        var longitude: Double = 0.0,
+        var placeId: String? = null
     ) {
         fun getImage(context: Context): Bitmap? {
             id?.let {
@@ -76,11 +79,22 @@ class BookmarkDetailsViewModel(application: Application):
         return bookmarkRepo.getCategoryResourceId(category)
     }
 
+    fun deleteBookmark(bookmarkDetailsView: BookmarkDetailsView) {
+        GlobalScope.launch {
+            val bookmark = bookmarkDetailsView.id?.let {
+                bookmarkRepo.getBookmark(it)
+            }
+            bookmark?.let {
+                bookmarkRepo.deleteBookmark(it)
+            }
+        }
+    }
+
     // 3. Converts a live database bookmark object to a Live bookmark view object
     private fun mapBookmarkToBookmarkView(bookmarkId: Long) {
         val bookmark = bookmarkRepo.getLiveBookmark(bookmarkId)
-        bookmarkDetailsView = Transformations.map(bookmark) {
-            repoBookmark -> bookmarkToBookmarkView(repoBookmark)
+        bookmarkDetailsView = Transformations.map(bookmark) {repoBookmark ->
+            repoBookmark?.let { bookmarkToBookmarkView(repoBookmark) }
         }
     }
 
@@ -93,7 +107,10 @@ class BookmarkDetailsViewModel(application: Application):
             bookmark.phone,
             bookmark.address,
             bookmark.notes,
-            bookmark.category
+            bookmark.category,
+            bookmark.latitude,
+            bookmark.longitude,
+            bookmark.placeId
         )
     }
 

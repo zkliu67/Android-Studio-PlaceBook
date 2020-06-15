@@ -10,7 +10,7 @@ import com.raywenderlich.placebook.db.PlaceBookDatabase
 import com.raywenderlich.placebook.model.Bookmark
 
 // Context object is required to get an instance of the BookmarkDatabase class
-class BookmarkRepo(context: Context) {
+class BookmarkRepo(private val context: Context) {
 
     val allBookmarks: LiveData<List<Bookmark>>
         get() {
@@ -61,6 +61,11 @@ class BookmarkRepo(context: Context) {
     // Convert a category to a resource Id
     fun getCategoryResourceId(placeCategory: String): Int? {
         return allCategories[placeCategory]
+    }
+
+    fun deleteBookmark(bookmark: Bookmark) {
+        bookmark.deleteImage(context) // delete the image
+        bookmarkDao.deleteBookmark(bookmark) // delete the bookmark
     }
 
     // Maps google place type to PlaceBook category
